@@ -8,7 +8,7 @@ import math
 from tqdm import tqdm
 
 from config import Config
-from src.model.transformer import Transformer, create_padding_mask, create_look_ahead_mask
+from src.transformer.transformer import Transformer, create_padding_mask, create_look_ahead_mask
 from src.data.dataset import load_translation_data, create_dataloaders
 from src.utils.tokenizer import train_tokenizer, load_tokenizers
 
@@ -80,21 +80,21 @@ def train_epoch(model, dataloader, criterion, optimizer, scheduler, device, conf
 
         output = model(src, tgt_input, src_mask, tgt_mask)
         loss = criterion(output, tgt_output)
-        
+
         # Gradient accumulation
         loss = loss / config.gradient_accumulation_steps
         loss.backward()
-        
+
         if (batch_idx + 1) % config.gradient_accumulation_steps == 0:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-            if hasattr(scheduler, 'step') and not config.use_cosine_scheduler:
+            if hasattr(scheduler, "step") and not config.use_cosine_scheduler:
                 scheduler.step()
             optimizer.zero_grad()
 
         total_loss += loss.item() * config.gradient_accumulation_steps
 
-        current_lr = optimizer.param_groups[0]['lr']
+        current_lr = optimizer.param_groups[0]["lr"]
         progress_bar.set_postfix({"loss": f"{loss.item() * config.gradient_accumulation_steps:.4f}", "avg_loss": f"{total_loss / (batch_idx + 1):.4f}", "lr": f"{current_lr:.2e}"})
 
     return total_loss / num_batches
@@ -166,24 +166,41 @@ def main():
     criterion = LabelSmoothingLoss(vocab_size=tgt_tokenizer.get_piece_size(), smoothing=config.label_smoothing, ignore_index=0)
 
     optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, betas=(0.9, 0.98), eps=1e-9, weight_decay=0.01)
-    
+
     if config.use_cosine_scheduler:
-        scheduler = CosineAnnealingWarmRestarts(
-            optimizer, 
-            T_0=config.cosine_restart_period, 
-            eta_min=config.lr_min,
-            T_mult=1
-        )
+        scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=config.cosine_restart_period, eta_min=config.lr_min, T_mult=1)
     else:
         scheduler = LearningRateScheduler(config.d_model, config.warmup_steps)
 
     writer = SummaryWriter(config.log_dir)
 
+    # 检查是否有预训练模型
+    resume_checkpoint = config.resume_checkpoint if hasattr(config, "resume_checkpoint") else None
+    start_epoch = 0
+
+    if resume_checkpoint and os.path.exists(resume_checkpoint):
+        print(f"Loading checkpoint: {resume_checkpoint}")
+        checkpoint = torch.load(resume_checkpoint, weights_only=False)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+        if "scheduler_state" in checkpoint:
+            # 加载调度器状态
+            if config.use_cosine_scheduler:
+                # 对于CosineAnnealingWarmRestarts需要特殊处理
+                scheduler.last_epoch = checkpoint["epoch"]
+            else:
+                scheduler.__dict__.update(checkpoint["scheduler_state"])
+
+        start_epoch = checkpoint["epoch"] + 1
+        best_val_loss = checkpoint["loss"]
+        print(f"Resuming training from epoch {start_epoch} with previous validation loss: {best_val_loss:.4f}")
+
     best_val_loss = float("inf")
     patience_counter = 0
 
     print("Starting training...")
-    for epoch in range(config.num_epochs):
+    for epoch in range(start_epoch, config.num_epochs):
         print(f"\nEpoch {epoch + 1}/{config.num_epochs}")
 
         train_loss = train_epoch(model, train_loader, criterion, optimizer, scheduler, config.device, config)
@@ -194,10 +211,10 @@ def main():
 
         writer.add_scalar("Loss/Train", train_loss, epoch)
         writer.add_scalar("Loss/Validation", val_loss, epoch)
-        
-        current_lr = optimizer.param_groups[0]['lr']
+
+        current_lr = optimizer.param_groups[0]["lr"]
         writer.add_scalar("Learning_Rate", current_lr, epoch)
-        
+
         if config.use_cosine_scheduler:
             scheduler.step()
 
@@ -209,7 +226,7 @@ def main():
         else:
             patience_counter += 1
             print(f"No improvement. Patience: {patience_counter}/{config.patience}")
-            
+
             if patience_counter >= config.patience:
                 print("Early stopping triggered!")
                 break

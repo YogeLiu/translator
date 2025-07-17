@@ -56,14 +56,19 @@ def collate_fn(batch):
 
 
 def load_translation_data(config: Config):
+    import random
+
     dataset = load_dataset(config.dataset_name)
 
     train_data = dataset["train"]
     val_data = dataset["validation"] if "validation" in dataset else dataset["train"].train_test_split(test_size=0.1)["test"]
 
     if config.is_demo:
-        train_data = train_data.select(range(config.demo_train_size))
-        val_data = val_data.select(range(config.demo_val_size))
+        # 随机选择demo样本
+        train_indices = random.sample(range(len(train_data)), min(config.demo_train_size, len(train_data)))
+        val_indices = random.sample(range(len(val_data)), min(config.demo_val_size, len(val_data)))
+        train_data = train_data.select(train_indices)
+        val_data = val_data.select(val_indices)
 
     return train_data, val_data
 

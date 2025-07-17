@@ -3,17 +3,17 @@ import torch
 
 class Config:
     # Model parameters
-    d_model = 256
+    d_model = 512
     n_heads = 8
-    n_layers = 2
-    d_ff = 512
+    n_layers = 6
+    d_ff = 2048
     max_seq_len = 512
     dropout = 0.3
 
     # Training parameters
     batch_size = 16
-    learning_rate = 0.001
-    num_epochs = 30
+    learning_rate = 5e-4
+    num_epochs = 100
     warmup_steps = 500
     label_smoothing = 0.1
 
@@ -26,8 +26,8 @@ class Config:
     gradient_accumulation_steps = 2
 
     # Early stopping
-    patience = 5
-    min_delta = 0.005
+    patience = 50
+    min_delta = 0.001
 
     # Data parameters
     dataset_name = "YogeLiu/zh-en-translation-dataset"
@@ -53,6 +53,8 @@ class Config:
     num_workers = 8
 
     # demo
-    is_demo = True
+    is_demo = False
     demo_train_size = 100000
-    demo_val_size = 10000
+    demo_val_size = 50000
+
+    resume_checkpoint = "./model/best_model.pt"  # 设置为None表示不 使用预训练模型，设置为路径表示加载该路径的模型继续训练
