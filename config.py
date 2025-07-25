@@ -3,12 +3,12 @@ import torch
 
 class Config:
     # Model parameters
-    d_model = 512
+    d_model = 256
     n_heads = 8
-    n_layers = 6
-    d_ff = 2048
-    max_seq_len = 512
-    dropout = 0.3
+    n_layers = 1
+    d_ff = 1024
+    max_seq_len = 256
+    dropout = 0.1
 
     # Training parameters
     batch_size = 16
@@ -30,10 +30,11 @@ class Config:
     min_delta = 0.001
 
     # Data parameters
-    dataset_name = "YogeLiu/zh-en-translation-dataset"
+    dataset_name = "YogeLiu/zh-en-translation-dataset-60K"
     src_lang = "zh"
     tgt_lang = "en"
-    vocab_size = 32000
+    src_vocab_size = 10000
+    tgt_vocab_size = 8000
 
     # Paths
     model_path = "./model"

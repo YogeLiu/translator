@@ -27,8 +27,8 @@ def evaluate_model(model_path, config, num_samples=10000):
     predictions = []
 
     for i, sample in enumerate(tqdm(test_samples, desc="Translating")):
-        src_text = sample["src"]
-        ref_text = sample["tgt"]
+        src_text = sample["chinese"]
+        ref_text = sample["english"]
 
         pred_text = translator.translate(src_text, max_length=100, beam_size=1)
 

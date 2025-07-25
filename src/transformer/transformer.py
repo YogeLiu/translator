@@ -120,15 +120,21 @@ class DecoderLayer(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, src_vocab_size, tgt_vocab_size, d_model=512, n_heads=8, n_layers=6, d_ff=2048, max_seq_len=512, dropout=0.1):
         super(Transformer, self).__init__()
+        # parameter d_model means the dimension of the embedding vector.
+        # parameter n_heads means the number of attention heads.
+        # parameter n_layers means the number of encoder and decoder layers.
+        # parameter d_ff means the dimension of the feedforward network.
+        # parameter max_seq_len means the maximum sequence length.
+        # parameter dropout means the dropout rate.
 
         self.d_model = d_model
         self.src_embedding = nn.Embedding(src_vocab_size, d_model)
         self.tgt_embedding = nn.Embedding(tgt_vocab_size, d_model)
         self.positional_encoding = PositionalEncoding(d_model, max_seq_len)
 
-        self.encoder_layers = nn.ModuleList([EncoderLayer(d_model, n_heads, d_ff, dropout) for _ in range(n_layers)])
+        self.encoder_layers = nn.ModuleList([EncoderLayer(d_model, n_heads, d_ff, dropout) for _ in range(n_layers)])  # encoder layers
 
-        self.decoder_layers = nn.ModuleList([DecoderLayer(d_model, n_heads, d_ff, dropout) for _ in range(n_layers)])
+        self.decoder_layers = nn.ModuleList([DecoderLayer(d_model, n_heads, d_ff, dropout) for _ in range(n_layers)])  # decoder layers
 
         self.output_projection = nn.Linear(d_model, tgt_vocab_size)
         self.dropout = nn.Dropout(dropout)

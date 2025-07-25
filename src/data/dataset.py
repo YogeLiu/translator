@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
 import sentencepiece as spm
 from config import Config
+from src.utils.tokenizer import load_tokenizers
 
 
 class TranslationDataset(Dataset):
@@ -17,8 +18,8 @@ class TranslationDataset(Dataset):
 
     def __getitem__(self, idx):
         item = self.data[idx]
-        src_text = item["src"]
-        tgt_text = item["tgt"]
+        src_text = item["chinese"]
+        tgt_text = item["english"]
 
         src_tokens = self.src_tokenizer.encode(src_text, out_type=int)
         tgt_tokens = self.tgt_tokenizer.encode(tgt_text, out_type=int)
@@ -41,8 +42,8 @@ def collate_fn(batch):
     tgt_output_batch = []
 
     for item in batch:
-        src = item["src"]
-        tgt = item["tgt"]
+        src = item["src"]  # Changed from item["chinese"]
+        tgt = item["tgt"]  # Changed from item["english"]
 
         src_padded = torch.cat([src, torch.full((src_max_len - len(src),), 0, dtype=torch.long)])
 
@@ -82,3 +83,13 @@ def create_dataloaders(train_data, val_data, src_tokenizer, tgt_tokenizer, confi
     val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, collate_fn=collate_fn, num_workers=config.num_workers)
 
     return train_loader, val_loader
+
+
+if __name__ == "__main__":
+    config = Config()
+    train_data, val_data = load_translation_data(config)
+    src_tokenizer, tgt_tokenizer = load_tokenizers(config)
+    train_loader, val_loader = create_dataloaders(train_data, val_data, src_tokenizer, tgt_tokenizer, config)
+    for batch in train_loader:
+        print(batch)
+        break

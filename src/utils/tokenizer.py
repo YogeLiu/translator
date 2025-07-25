@@ -14,8 +14,8 @@ def train_tokenizer(config: Config):
 
     print("Extracting texts...")
     for item in train_data:
-        src_texts.append(item["src"])
-        tgt_texts.append(item["tgt"])
+        src_texts.append(item["chinese"])
+        tgt_texts.append(item["english"])
 
     os.makedirs(config.tokenizer_path, exist_ok=True)
 
@@ -35,9 +35,9 @@ def train_tokenizer(config: Config):
     spm.SentencePieceTrainer.train(
         input=src_text_file,
         model_prefix=os.path.join(config.tokenizer_path, "src_tokenizer"),
-        vocab_size=config.vocab_size,
+        vocab_size=config.src_vocab_size,
         character_coverage=0.9995,
-        model_type="bpe",
+        model_type="Unigram",
         pad_id=0,
         unk_id=1,
         bos_id=2,
@@ -53,7 +53,7 @@ def train_tokenizer(config: Config):
     spm.SentencePieceTrainer.train(
         input=tgt_text_file,
         model_prefix=os.path.join(config.tokenizer_path, "tgt_tokenizer"),
-        vocab_size=config.vocab_size,
+        vocab_size=config.tgt_vocab_size,
         character_coverage=0.9995,
         model_type="bpe",
         pad_id=0,
@@ -85,4 +85,9 @@ def load_tokenizers(config: Config):
 
 if __name__ == "__main__":
     config = Config()
-    train_tokenizer(config)
+    # train_tokenizer(config)
+    src_tokenizer, tgt_tokenizer = load_tokenizers(config)
+    print(src_tokenizer.encode("运用沙维雅模式来转化因外遇产生的创伤和处理婚姻危机。"))
+    print(tgt_tokenizer.encode("In the next three installments of this series, I'll go into these steps in detail."))
+
+    # print(src_tokenizer.decode([3496, 699, 4303, 3884, 4528, 280, 3524, 1990, 3586, 3662, 4473, 1065, 3932, 4093, 3504, 113, 1673, 1109, 3497]))
